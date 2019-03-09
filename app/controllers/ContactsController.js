@@ -1,10 +1,13 @@
 const express = require('express')
 const router = express.Router() 
 const { Contact } = require('../models/Contact')
+const { authenticateUser } = require('../middlewares/authentication')
 
 // localhost:3000/contacts
-router.get('/', function (req, res) {
-    Contact.find()
+router.get('/', authenticateUser, function (req, res) {
+    Contact.find({
+        user: req.user._id
+    })
         .then(function (contacts) {
             res.send(contacts)
         })
@@ -13,9 +16,10 @@ router.get('/', function (req, res) {
         })
 })
 
-router.post('/', function (req, res) {
+router.post('/', authenticateUser, function (req, res) {
     const body = req.body // const { body } = req 
     const contact = new Contact(body)
+    contact.user = req.user._id
     contact.save()
         .then(function (contact) {
             res.send({
@@ -30,9 +34,12 @@ router.post('/', function (req, res) {
 
 
 // localhost:3000/contacts/:id
-router.get('/:id', function (req, res) {
+router.get('/:id', authenticateUser, function (req, res) {
     const id = req.params.id
-    Contact.findById(id)
+    Contact.findOne({
+        user: req.user._id,
+        _id: id 
+    })
         .then(function (contact) {
             // when you are trying to find the record by the id, if the rec is not found, it returns null, not be understood as promise being rejected
             if (contact) {
@@ -48,9 +55,12 @@ router.get('/:id', function (req, res) {
 
 
 //localhost:3000/contacts/:id
-router.delete('/:id', function (req, res) {
+router.delete('/:id', authenticateUser, function (req, res) {
     const id = req.params.id
-    Contact.findByIdAndDelete(id)
+    Contact.findOneAndDelete({
+        _id: id, 
+        user: req.user._id 
+    })
         .then(function (contact) {
             if (contact) {
                 res.send({
@@ -66,10 +76,10 @@ router.delete('/:id', function (req, res) {
         })
 })
 
-router.put('/:id', function (req, res) {
+router.put('/:id', authenticateUser, function (req, res) {
     const id = req.params.id
     const body = req.body
-    Contact.findByIdAndUpdate(id, body, { new: true, runValidators: true })
+    Contact.findOneAndUpdate({ _id: id, user: req.user._id}, body, { new: true, runValidators: true })
         .then(function (contact) {
             if (contact) {
                 res.send({

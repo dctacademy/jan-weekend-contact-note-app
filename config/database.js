@@ -8,8 +8,8 @@ mongoose.connect('mongodb://localhost:27017/my-apps-jan', { useNewUrlParser: tru
     .then(function () {
         console.log('connected to db')
     })
-    .catch(function () {
-        console.log('error connecting to db')
+    .catch(function (err) {
+        console.log('error connecting to db',err)
     })
 
 module.exports = {

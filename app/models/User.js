@@ -1,40 +1,126 @@
 const mongoose = require('mongoose')
-// npm install --save bcryptjs 
-const bcrypt = require('bcryptjs')
+const validator = require('validator')
+const jwt = require('jsonwebtoken')
+const bcryptjs = require('bcryptjs')
 const Schema = mongoose.Schema
 
 const userSchema = new Schema({
     username: {
-        type: String, 
-        required: true, 
-        minlength: 5,
-        unique: true 
-    }, 
-    password: {
-        type: String, 
-        required: true, 
-        minlength: 8,
-        maxlength: 128
+        type: String,
+        required: true,
+        unique: true,
+        minlength: 5
     },
     email: {
-        type: String, 
-        required: true, 
-        unique: true 
+        type: String,
+        required: true,
+        unique: true,
+        validate: {
+            validator: function (value) {
+                return validator.isEmail(value)
+            },
+            message: function () {
+                return 'invalid email format'
+            }
+        }
     },
-    createdAt: {
-        type: Date, 
-        default: Date.now 
-    }
+    password: {
+        type: String,
+        required: true,
+        minlength: 6,
+        maxlength: 128
+    },
+    tokens: [
+        {
+            token: {
+                type: String
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
 })
 
-// Pre Hook - Mongoose Middleware // es5 function
-userSchema.pre('save', function(next){
-    const user = this 
-    if(user.isNew) {
-        bcrypt.genSalt(10)
-            .then(function(salt){
-                bcrypt.hash(user.password, salt)
-                    .then(function(encryptedPassword){
+
+// own static method 
+userSchema.statics.findByCredentials = function (email, password) {
+    const User = this
+    return User.findOne({ email })
+        .then(function (user) {
+            if (!user) {
+                return Promise.reject('invalid email / password')
+            }
+
+            return bcryptjs.compare(password, user.password)
+                .then(function (result) {
+                    if (result) {
+                        return Promise.resolve(user)
+                        // return new Promise(function(resolve, reject){
+                        //     resolve(user)
+                        // })
+                    } else {
+                        return Promise.reject('invalid email / password ')
+                    }
+                })
+        })
+        .catch(function (err) {
+            return Promise.reject(err)
+            // return new Promise(function(resolve, reject){
+            //  reject(err) 
+            // })
+        })
+}
+
+userSchema.statics.findByToken = function (token) {
+    const User = this
+    let tokenData
+    try {
+        tokenData = jwt.verify(token, 'jwt@123')
+    } catch (err) {
+        return Promise.reject(err)
+    }
+
+    return User.findOne({
+        _id: tokenData._id,
+        'tokens.token': token
+    })
+}
+
+// own instance methods
+userSchema.methods.generateToken = function () {
+    const user = this
+    const tokenData = {
+        _id: user._id,
+        username: user.username,
+        createdAt: Number(new Date())
+    }
+
+    const token = jwt.sign(tokenData, 'jwt@123')
+    user.tokens.push({
+        token
+    })
+
+    return user.save()
+        .then(function (user) {
+            return Promise.resolve(token)
+        })
+        .catch(function (err) {
+            return Promise.reject(err)
+        })
+}
+
+
+
+// pre hooks - Model Middlewares - 
+userSchema.pre('save', function (next) {
+    const user = this
+    if (user.isNew) {
+        bcryptjs.genSalt(10)
+            .then(function (salt) {
+                bcryptjs.hash(user.password, salt)
+                    .then(function (encryptedPassword) {
                         user.password = encryptedPassword
                         next()
                     })
@@ -44,46 +130,8 @@ userSchema.pre('save', function(next){
     }
 })
 
-// userSchema.methods.checkPassword = function(password){
-//     const user = this 
-//     return bcrypt.compare(password, user.password)
-// }
-
-// userSchema.methods.methodName 
-
-// userSchema.statics.findByCredentials = function(email, password){
-//     const User = this 
-//     return User.findOne({ email: email })
-//         .then(function(user){
-//             // console.log(user)
-//             if(user) {
-//                 // return Promise.resolve(user) 
-//                 // check users password 
-//                 console.log(user.password)
-//                 return bcrypt.compare(password, user.password)
-//                     .then(function(result){
-//                         if(result) {
-//                             return Promise.resolve(user) 
-//                             // return new Promise(function (resolve, reject) {
-//                             //     resolve(user)
-//                             // })
-//                         } else {
-//                             return Promise.reject('invalid email / password')
-//                             // return new Promise(function(resolve, reject){
-//                             //     reject('invalid email / password')
-//                             // })
-//                         }
-//                     })
-//             } else {
-//                 return Promise.reject('email not found')
-//                 // return new Promise(function(resolve, reject){
-//                 //     reject('invalid email / password')
-//                 // })
-//             }
-//         })
-// }
-
 const User = mongoose.model('User', userSchema)
+
 
 module.exports = {
     User
