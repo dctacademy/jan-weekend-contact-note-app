@@ -1,0 +1,6 @@
+9/3 
+
+user model 
+
+-> loginCount - 0 
+    everytime a user logs in- increment the count by 1 
