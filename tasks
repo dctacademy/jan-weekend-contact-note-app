@@ -4,3 +4,16 @@ user model
 
 -> loginCount - 0 
     everytime a user logs in- increment the count by 1 
+
+
+10/3
+
+/
+list all users in the system
+
+GET localhost:3000/users - List all users 
+
+
+POST localhost:3000/users/register
+POST localhost:3000/users/login 
+DELETE localhost:3000/users/logout 

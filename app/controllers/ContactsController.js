@@ -1,4 +1,5 @@
 const express = require('express')
+const _ = require('lodash')
 const router = express.Router() 
 const { Contact } = require('../models/Contact')
 const { authenticateUser } = require('../middlewares/authentication')
@@ -17,7 +18,7 @@ router.get('/', authenticateUser, function (req, res) {
 })
 
 router.post('/', authenticateUser, function (req, res) {
-    const body = req.body // const { body } = req 
+    const body = _.pick(req.body, ['name', 'email', 'mobile']) // const { body } = req 
     const contact = new Contact(body)
     contact.user = req.user._id
     contact.save()
@@ -78,7 +79,7 @@ router.delete('/:id', authenticateUser, function (req, res) {
 
 router.put('/:id', authenticateUser, function (req, res) {
     const id = req.params.id
-    const body = req.body
+    const body = _.pick(req.body, ['name', 'email', 'mobile'])
     Contact.findOneAndUpdate({ _id: id, user: req.user._id}, body, { new: true, runValidators: true })
         .then(function (contact) {
             if (contact) {

@@ -1,11 +1,27 @@
 const express = require('express')
+// npm install --save lodash 
+const _ = require('lodash')
 const router = express.Router()
 const { User } = require('../models/User')
 const { authenticateUser } = require('../middlewares/authentication')
+const { authorizeUser } = require('../middlewares/authorization')
+
+// admin route
+router.get('/', authenticateUser, authorizeUser, function(req, res){
+    User.find()
+        .then(function(users){
+            res.send(users) 
+        })
+        .catch(function(err){
+            res.send(err) 
+        })
+} )
+
 
 // localhost:3000/users/register
 router.post('/register', function (req, res) {
-    const body = req.body
+    // strong parameters - whitelisting incoming request body 
+    let body = _.pick(req.body, ['username', 'email', 'password'])   
     const user = new User(body)
     user.save()
         .then(function (user) {
@@ -37,7 +53,6 @@ router.get('/account', authenticateUser, function (req, res) {
     const { user } = req
     res.send(user)
 })
-
 
 // localhost:3000/users/logout
 router.delete('/logout', authenticateUser, function (req, res) {

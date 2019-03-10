@@ -40,7 +40,11 @@ const userSchema = new Schema({
                 default: Date.now
             }
         }
-    ]
+    ], 
+    roles: {
+        type: [String],
+        default: 'user'
+    }
 })
 
 
