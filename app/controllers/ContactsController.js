@@ -29,7 +29,7 @@ router.post('/', authenticateUser, function (req, res) {
             })
         })
         .catch(function (err) {
-            res.status('404').send(err)
+            res.send(err)
         })
 })
 

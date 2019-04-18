@@ -44,6 +44,10 @@ const userSchema = new Schema({
     roles: {
         type: [String],
         default: 'user'
+    },
+    allowAccess: {
+        type: Boolean, 
+        default: true
     }
 })
 
@@ -54,7 +58,7 @@ userSchema.statics.findByCredentials = function (email, password) {
     return User.findOne({ email })
         .then(function (user) {
             if (!user) {
-                return Promise.reject('invalid email / password')
+                return Promise.reject({ errors: 'invalid email / password' })
             }
 
             return bcryptjs.compare(password, user.password)
@@ -65,7 +69,7 @@ userSchema.statics.findByCredentials = function (email, password) {
                         //     resolve(user)
                         // })
                     } else {
-                        return Promise.reject('invalid email / password ')
+                        return Promise.reject({ errors: 'invalid email / password' })
                     }
                 })
         })
@@ -121,14 +125,33 @@ userSchema.methods.generateToken = function () {
 userSchema.pre('save', function (next) {
     const user = this
     if (user.isNew) {
-        bcryptjs.genSalt(10)
-            .then(function (salt) {
-                bcryptjs.hash(user.password, salt)
-                    .then(function (encryptedPassword) {
-                        user.password = encryptedPassword
-                        next()
-                    })
+        function encryptPassword() {
+            return bcryptjs.genSalt(10)
+                .then(function (salt) {
+                    return bcryptjs.hash(user.password, salt)
+                        .then(function (encryptedPassword) {
+                            user.password = encryptedPassword
+                        })
+                })
+        }
+
+        function setRole() {
+            return User.countDocuments()
+                .then(function(count){
+                    if(count == 0) {
+                        user.roles = ['admin']
+                    } 
+                })
+        }
+
+        return Promise.all([encryptPassword(), setRole()])
+            .then(function(values){
+                console.log(user.password)
+                next()
+            }).catch(function(err){
+                return Promise.reject(err.message)
             })
+        
     } else {
         next()
     }

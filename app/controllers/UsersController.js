@@ -40,7 +40,7 @@ router.post('/login', function (req, res) {
             return user.generateToken()
         })
         .then(function (token) {
-            res.setHeader('x-auth', token).send({})
+            res.send({ token })
         })
         .catch(function (err) {
             res.send(err)
@@ -56,6 +56,7 @@ router.get('/account', authenticateUser, function (req, res) {
 
 // localhost:3000/users/logout
 router.delete('/logout', authenticateUser, function (req, res) {
+    console.log('request')
     const { user, token } = req
     User.findByIdAndUpdate(user._id, { $pull: { tokens: { token: token } } })
         .then(function () {

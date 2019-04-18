@@ -48,5 +48,5 @@ contactSchema.pre('save', function(next){
 const Contact = mongoose.model('Contact', contactSchema) 
 
 module.exports = {
-    Contact
+    Contact 
 }
